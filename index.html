@@ -1,0 +1,592 @@
+<!doctype html>
+
+<html lang="en">
+  <head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Sample illustrating the use of Service Worker postMessage().">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>Service Worker postMessage() Sample</title>
+   <!-- <script>
+      
+      window.addEventListener('error', function(error) {
+        if (ChromeSamples && ChromeSamples.setStatus) {
+          ChromeSamples.setStatus(error.message + ' (Your browser may not support this feature.)');
+          error.preventDefault();
+        }
+      });
+    </script>  
+    -->
+    
+    <style type="text/css">
+    table.scroll {
+    /* width: 100%; */ /* Optional */
+    /* border-collapse: collapse; */
+    border-spacing: 0;
+    border: 2px solid black;
+}
+
+table.scroll tbody,
+table.scroll thead { display: block; }
+
+table.scroll thead tr th { 
+    height: 30px;
+    line-height: 30px;
+    /* text-align: left; */
+}
+
+table.scroll tbody {
+    height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+table.scroll tbody { border-top: 2px solid black; }
+
+table.scroll td, table.scroll thead th td {
+    /* width: 20%; */ /* Optional */
+    border-right: 1px solid black;
+    /* white-space: nowrap; */
+}
+table.scroll tbody td
+{
+ border-bottom: 1px solid black;
+}
+
+
+table.scroll td:last-child, table.scroll thead th:last-child {
+    border-right: none;
+
+}
+table.scroll tbody td:last-child
+{
+
+}
+
+    </style>
+    <style type="text/css">
+    #status1 {
+    padding: 5px;
+    color: #fff;
+    background: #ccc;
+}
+    #status1.offline {
+  background: #c00;
+}
+
+#status1.online {
+  background: #0c0;
+}
+
+
+    </style>
+    <script src="js/jquery-1.10.2.js"></script> 
+    <script type="text/javascript">//<![CDATA[
+$( document ).ready(function() {
+// Change the selector if needed
+var $table = $('table.scroll'),
+    $bodyCells = $table.find('tbody tr:first').children(),
+    colWidth;
+
+// Adjust the width of thead cells when window resizes
+$(window).resize(function() {
+    // Get the tbody columns width array
+    colWidth = $bodyCells.map(function() {
+        return $(this).width();
+    }).get();
+    
+    // Set the width of thead columns
+    $table.find('thead tr').children().each(function(i, v) {
+        $(v).width(colWidth[i]);
+    });    
+}).resize(); // Trigger resize handler
+});//]]> 
+
+</script>
+    
+  </head>
+
+  <body>
+  
+
+
+
+   
+
+    <script>
+  var ChromeSamples = {
+    log: function() {
+      var line = Array.prototype.slice.call(arguments).map(function(argument) {
+        return typeof argument === 'string' ? argument : JSON.stringify(argument);
+      }).join(' ');
+
+      document.querySelector('#log').textContent += line + '\n';
+    },
+
+    clearLog: function() {
+      document.querySelector('#log').textContent = '';
+    },
+
+    setStatus: function(status) {
+      document.querySelector('#status').textContent = status;
+    },
+
+    setContent: function(newContent) { /*console.log(newContent);
+      var content = document.querySelector('#content');
+        
+      while(content.hasChildNodes()) {
+        content.removeChild(content.lastChild);
+      }
+      content.appendChild(newContent);*/
+    }
+  };
+</script>
+
+  <center><br/>
+     
+<h3>Example for Service Worker Post Form</h3>
+ <p>Current network status: <span id="status1">checking...</span></p></br>
+  <script>
+var statusElem = document.getElementById('status1')
+
+setInterval(function () {
+  statusElem.className = navigator.onLine ? 'online' : 'offline';
+  statusElem.innerHTML = navigator.onLine ? 'online' : 'offline';  
+}, 250);
+</script>
+<div style="border:1px solid black;width:40%;background-color:#c3e1c3;">
+</br>
+<div id="content">
+<div id="commands">
+  <div >
+   
+   
+
+   <table>
+     <tr><td> <label for="name" align="left">Name:</label></td>
+   <td>  <input  id="name" type="text" value=""></td></tr>
+    
+ <tr><td>   <label for="age" align="left">Age:</label></td>
+   <td> <input  id="age" type="text"  value=""></td> </tr>
+     </table>
+
+</br>
+<input type="submit" id="add" name="submit"  >
+
+</br>
+
+ <!--   <button align="center" id="delete">Delete from Cache</button>-->
+  </div>
+
+  <div> </br>
+   <!-- <button id="listcontents">List Current Cache Contents</button> -->
+    </br>
+     </br>
+  </div>
+  <div>
+  <table id="contents" border='0' >
+  </table> 
+  </div>
+</div>
+</div>
+<div id="status"></div>
+  <pre id="log"></pre>
+</div>
+
+</div>
+</center>
+
+ <link rel="stylesheet" href="css/main.css">
+
+<script>
+
+
+   function showCommands() {
+  document.querySelector('#add').addEventListener('click', function() {
+   var name =document.querySelector('#name').value;
+   var age =document.querySelector('#age').value;
+   var JSONObj = { "name" : name, "age"  : age };
+    var geturl= 'http://10.25.122.7/mobile/webservice/edistrictdomain/test/server.php';
+    var  formData = 'name='+name+'&age='+age+'';
+    sendMessage({
+      command: 'add',
+      url: geturl,
+      t1:'',
+      getData: formData
+    }).then(function(data) { 
+      // If the promise resolves, just display a success message.
+      if(navigator.onLine) {
+      	
+      	ChromeSamples.setStatus('sent to server.');
+      }
+      else {
+      ChromeSamples.setStatus('Added to cache.');
+      	addtoIdb(JSONObj, data.d);
+      	
+      }
+      
+     // fetch();
+    }).catch(ChromeSamples.setStatus); // If the promise rejects, show the error.
+  });
+  
+ function sendttoServer(t1, u) {
+ 
+ 
+ 
+ var db = new PouchDB('offlineData', function (err, db) {
+
+
+            var key, count = 0;
+
+            function map(doc) {
+                if (doc._id, doc) {
+                    emit(doc._id, doc);
+                }
+            }
+            db.query({
+                map: map
+            }, {
+                reduce: false
+            }, function (err, response) {
+                console.log("Response Data:" + JSON.stringify(response));
+                var data1 = response;
+                //alert(JSON.stringify(data1));
+
+                for (key in response.rows) {
+                    count++
+                }
+
+                if (count > 0) {
+
+                    var sno = 1;
+                    var temp = [];
+                    var cnt = 0;
+
+                    $.each(data1, function () {
+                        $.each(this, function (k, v) {
+                        
+                        
+                        
+                        if (t1 == v.value['d']) { console.log("u=>"+u);
+                        	
+                        	sendttoServer1(v.value['name'], v.value['age'], v.value['d'], u);
+                        }
+                       // sendttoServer1();
+
+                        });
+
+                    });
+
+                } else {
+                }
+
+            });
+        });
+ 
+ }
+
+function sendttoServer1(a, b, t1, u) {  
+ var val=u+'?t='+t1;
+ var name =a;
+   var age =b;
+   var JSONObj = { "name" : a, "age"  : b };
+    var geturl= u;
+    var  formData = 'name='+a+'&age='+b+'';
+    sendMessage({
+      command: 'add',
+      url: geturl,
+      t1: t1,
+      getData: formData
+    }).then(function(data) { console.log("data==>"+JSON.stringify(data));
+      // If the promise resolves, just display a success message.
+      if(navigator.onLine) {
+       ChromeSamples.setStatus('sent to server.');
+      	del1(val, t1);
+      	
+      	
+
+      }
+      else {
+      ChromeSamples.setStatus('exist.');
+      	
+      	
+      	
+      }
+      
+      //fetch();
+    }).catch(ChromeSamples.setStatus); // If the promise rejects, show the error.
+ 	
+ }
+
+ /* document.querySelector('#delete').addEventListener('click', function() {
+    sendMessage({
+      command: 'delete',
+      url: document.querySelector('#url').value
+    }).then(function() {
+      // If the promise resolves, just display a success message.
+      ChromeSamples.setStatus('Deleted from cache.');
+    }).catch(ChromeSamples.setStatus); // If the promise rejects, show the error.
+  });*/
+  
+/*
+  document.querySelector('#listcontents').addEventListener('click', function() {
+    fetch();
+  });
+  */
+  
+  if(navigator.onLine)
+        { 
+         fetch();
+
+        }
+        else {
+        document.getElementsByName('submit')[0].value="Add to Cache";
+        
+        	
+        }
+  
+function addtoIdb(JSONObj, d) {
+JSONObj.d=d;
+console.log(JSON.stringify(JSONObj));
+
+ var db = new PouchDB('offlineData', function (err, db) {
+
+
+                    db.post(JSONObj, function (err, data) {
+
+                        if (err) {
+                            return console.error(err);
+                        } else {
+                        
+                            //alert("Data Locally Stored Successfully");
+                            fetch();
+                            
+                        }
+
+                    });
+ 
+ 
+        });
+}  
+  
+  function fetch(){
+    sendMessage({command: 'keys'})
+      .then(function(data) { 
+                            $('#contents').empty();
+        var contentsElement = $('#contents');
+         var sno=1;
+
+        // Clear out the existing items from the list.
+        while (contentsElement.firstChild) {
+          contentsElement.removeChild(contentsElement.firstChild);
+        }
+        
+                                   contentsElement.append("<table  class='scroll' cellpadding='5'><thead><tr><td style='width:40px;'>S.No</td><td style='text-align:center;'>Url</td></tr> </thead> <tbody>");
+
+        // Add each cached URL to the list, one by one.
+         if(data.urls.length > 0){
+        data.urls.forEach(function(url) {
+        
+                var t1 =getParameterByName('t',url);
+                
+                var u =getPathFromUrl(url); 
+     if(navigator.onLine)
+        { 
+        sendttoServer(t1, u);
+        }
+        else {
+        	
+        }
+      
+       
+        var name =getParameterByName('name',url);
+    var age =getParameterByName('age',url);
+        //  var liElement = document.createElement('li');
+         // liElement.textContent = url;
+          contentsElement.append("<tr><td style='width:40px;'>"+sno+" </td><td>"+url+" </td></tr>");
+         sno=sno+1;
+       
+         
+        });
+        }
+        else {
+         
+                   contentsElement.append("<tr><td colspan='5' style='color:red; text-align:center;'> No Data Available </td></tr>");
+         	
+         }
+        
+       // contentsElement.append("</table>");
+        
+      }).catch(ChromeSamples.setStatus); // If the promise rejects, show the error.
+      }
+  
+
+  document.querySelector('#commands').style.display = 'block';
+}
+    
+    /*function del(val){
+        
+         sendMessage({
+      command: 'delete',
+      url: val
+    }).then(function() {
+      // If the promise resolves, just display a success message.
+      ChromeSamples.setStatus('Deleted from cache.');
+      alert('Deleted from cache.');
+      document.location.href="index.html";
+      
+    }).catch(ChromeSamples.setStatus); // If the promise rejects, show the error.
+        
+    }*/
+    
+     function del1(val, t1){
+        
+         sendMessage({
+      command: 'delete',
+      url: val
+    }).then(function() {
+      // If the promise resolves, just display a success message.
+      ChromeSamples.setStatus('Deleted from cache.');
+    //  alert('Deleted from cache.');
+    delPouchData(t1);
+      
+    }).catch(ChromeSamples.setStatus); // If the promise rejects, show the error.
+        
+    }
+    
+    function edit(val){
+    
+     document.getElementById('name').value=getParameterByName('name',val);
+     document.getElementById('age').value=getParameterByName('age',val);
+               
+    }
+    
+    function delPouchData(t1) {
+    
+     var db = new PouchDB('offlineData', function (err, db) {
+
+
+            var key, count = 0;
+
+            function map(doc) {
+                if (doc._id, doc) {
+                    emit(doc._id, doc);
+                }
+            }
+            db.query({
+                map: map
+            }, {
+                reduce: false
+            }, function (err, response) {
+                console.log("Response Data:" + JSON.stringify(response));
+                var data1 = response;
+                //alert(JSON.stringify(data1));
+
+                for (key in response.rows) {
+                    count++
+                }
+
+                if (count > 0) {
+
+                    var sno = 1;
+                    var temp = [];
+                    var cnt = 0;
+
+                    $.each(data1, function () {
+                        $.each(this, function (k, v) {
+                        
+                        //
+                        
+                        if (t1 == v.value['d']) {
+                        	console.log("test==>" + JSON.stringify(v.value));
+                        	
+                        	 //Remove post form data
+                                    db.remove(v.value._id, v.value._rev, function (err, response) {
+                                        if (err) {
+                                            return console.log(err);
+                                        }
+
+                                        // handle response
+                                        console.log("Removed Successfully");
+                                    });
+                        	
+                        	    	
+                        }
+                       // sendttoServer1();
+
+                        });
+
+                    });
+
+                } else {
+                }
+
+            });
+        });
+    	
+    }
+    
+    
+function getPathFromUrl(url) {
+  return url.split("?")[0];
+}
+
+function getParameterByName(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+function sendMessage(message) { 
+  return new Promise(function(resolve, reject) {
+    var messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = function(event) {
+      if (event.data.error) {
+        reject(event.data.error);
+      } else {
+        resolve(event.data);
+      }
+    };
+        navigator.serviceWorker.controller.postMessage(message,
+      [messageChannel.port2]);
+  });
+}
+
+
+
+//SERVICE WORKER Register START HERE
+
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    ChromeSamples.setStatus(event.data);
+  });
+
+  navigator.serviceWorker.register('./serviceworker.js')
+  
+    .then(function() {
+      return navigator.serviceWorker.ready;
+    })  
+    .then(showCommands)
+    .catch(function(error) {
+     ChromeSamples.setStatus(error);
+    });
+} else {
+  ChromeSamples.setStatus('This browser does not support service workers.');
+}
+
+//SERVICE WORKER Register END HERE
+
+
+
+
+</script>
+<script src="js/pouchdb-5.2.1.min.js"></script>
+  </body>
+</html>
